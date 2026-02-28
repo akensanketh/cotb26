@@ -1,45 +1,72 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>COTB '26 LIVE</title>
     <style>
         body { font-family: sans-serif; background: #002D62; color: white; text-align: center; margin: 0; padding: 20px; }
-        .card { background: white; color: #333; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .card { background: white; color: #333; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 400px; margin: 0 auto; }
         .live-dot { height: 10px; width: 10px; background: #ff0000; border-radius: 50%; display: inline-block; animation: pulse 1s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
-        h1 { font-size: 1.5rem; margin-bottom: 5px; }
-        .val { font-size: 2rem; font-weight: bold; color: #002D62; margin: 10px 0; }
-        .label { font-size: 0.8rem; color: #888; text-transform: uppercase; }
+        h1 { font-size: 1.5rem; margin-bottom: 5px; color: #002D62; }
+        .val { font-size: 1.8rem; font-weight: bold; color: #002D62; margin: 10px 0; line-height: 1.2; }
+        .label { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-top: 15px; }
+        hr { border: 0; border-top: 1px solid #eee; margin: 15px 0; }
+        .sync-time { font-size: 10px; color: #bbb; margin-top: 15px; font-style: italic; }
     </style>
 </head>
 <body>
+
     <div class="card">
-        <p><span class="live-dot"></span> LIVE TRACKER</p>
+        <p style="margin-top:0;"><span class="live-dot"></span> <span style="font-weight:bold; font-size: 14px;">LIVE TRACKER</span></p>
         <h1>CLASH OF THE BLUES</h1>
         <hr>
+        
         <div class="label">Current Status</div>
         <div id="status" class="val">Syncing...</div>
+
         <div class="label">Location</div>
         <div id="location" class="val">Please Wait</div>
+
+        <div id="last-sync" class="sync-time">Connecting to engine...</div>
     </div>
 
     <script>
+        // High-speed CSV URL
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXcDs9WrGEEfuqQYpyXDY-xG-Mg57KbyqQBMoSXmz9RcdjO_Qlpfk-gHyrvhf7V0VQYFaMqc14xmhv/pub?gid=0&single=true&output=csv';
 
         async function updateData() {
             try {
-                const res = await fetch(CSV_URL + '&t=' + Date.now());
+                // Fetch with cache-busting timestamp and no-cache header
+                const res = await fetch(CSV_URL + '&nocache=' + Date.now(), {
+                    cache: "no-store"
+                });
+                
                 const text = await res.text();
                 const rows = text.split('\n');
-                const data = rows[1].split(','); // Gets Row 2
                 
-                document.getElementById('status').innerText = data[0].replace(/"/g, "");
-                document.getElementById('location').innerText = data[1].replace(/"/g, "");
-            } catch (e) { console.log("Update failed"); }
+                if (rows.length >= 2) {
+                    const data = rows[1].split(','); 
+                    
+                    // Update the text and remove any quotes from the CSV
+                    document.getElementById('status').innerText = data[0].replace(/"/g, "");
+                    document.getElementById('location').innerText = data[1].replace(/"/g, "");
+                    
+                    // Update timestamp
+                    const now = new Date();
+                    document.getElementById('last-sync').innerText = "Last Sync: " + now.toLocaleTimeString();
+                }
+            } catch (e) { 
+                console.log("Sync failed, retrying..."); 
+                document.getElementById('last-sync').innerText = "Sync interrupted. Reconnecting...";
+            }
         }
 
-        setInterval(updateData, 10000); // Updates every 10 seconds
+        // Fast Refresh: Every 3 seconds (3000ms)
+        setInterval(updateData, 3000); 
+        
+        // Initial call
         updateData();
     </script>
 </body>
