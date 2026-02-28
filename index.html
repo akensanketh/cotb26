@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COTB '26 LIVE</title>
+    <style>
+        body { font-family: sans-serif; background: #002D62; color: white; text-align: center; margin: 0; padding: 20px; }
+        .card { background: white; color: #333; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .live-dot { height: 10px; width: 10px; background: #ff0000; border-radius: 50%; display: inline-block; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+        h1 { font-size: 1.5rem; margin-bottom: 5px; }
+        .val { font-size: 2rem; font-weight: bold; color: #002D62; margin: 10px 0; }
+        .label { font-size: 0.8rem; color: #888; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <p><span class="live-dot"></span> LIVE TRACKER</p>
+        <h1>CLASH OF THE BLUES</h1>
+        <hr>
+        <div class="label">Current Status</div>
+        <div id="status" class="val">Syncing...</div>
+        <div class="label">Location</div>
+        <div id="location" class="val">Please Wait</div>
+    </div>
+
+    <script>
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXcDs9WrGEEfuqQYpyXDY-xG-Mg57KbyqQBMoSXmz9RcdjO_Qlpfk-gHyrvhf7V0VQYFaMqc14xmhv/pub?gid=0&single=true&output=csv';
+
+        async function updateData() {
+            try {
+                const res = await fetch(CSV_URL + '&t=' + Date.now());
+                const text = await res.text();
+                const rows = text.split('\n');
+                const data = rows[1].split(','); // Gets Row 2
+                
+                document.getElementById('status').innerText = data[0].replace(/"/g, "");
+                document.getElementById('location').innerText = data[1].replace(/"/g, "");
+            } catch (e) { console.log("Update failed"); }
+        }
+
+        setInterval(updateData, 10000); // Updates every 10 seconds
+        updateData();
+    </script>
+</body>
+</html>
