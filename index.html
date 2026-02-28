@@ -25,12 +25,12 @@
         <hr>
         
         <div class="label">Current Status</div>
-        <div id="status" class="val">Syncing...</div>
+        <div id="status" class="val">Connecting...</div>
 
         <div class="label">Location</div>
-        <div id="location" class="val">Waiting...</div>
+        <div id="location" class="val">Loading...</div>
 
-        <div id="last-sync" class="sync-time">Connecting...</div>
+        <div id="last-sync" class="sync-time">Establishing Link...</div>
     </div>
 
     <div class="credits">
@@ -42,32 +42,27 @@
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxGxEgHckLmJ5IQL2mzOHOQ0qMLzK2O4VOYq4wb1ZIeyrCK1-liG1Uu3h0pySMd-QPavQ/exec';
 
         async function updateData() {
-            try {
-                // 'cache: no-store' and a random 'v=' parameter kills the flickering/old data
-                const response = await fetch(`${SCRIPT_URL}?v=${Date.now()}`, {
-                    method: 'GET',
-                    cache: 'no-store',
-                    mode: 'cors'
-                });
+            // We add the time to the URL but remove the 'cache: no-store' headers 
+            // to allow Google to handle the redirect properly.
+            const finalUrl = SCRIPT_URL + "?v=" + new Date().getTime();
 
-                if (!response.ok) return;
-                
+            try {
+                const response = await fetch(finalUrl);
                 const data = await response.json();
 
-                // Only update if we actually have text to prevent blank flickers
-                if (data.status && data.location) {
+                if (data.status || data.location) {
                     document.getElementById('status').innerText = data.status;
                     document.getElementById('location').innerText = data.location;
-                    document.getElementById('last-sync').innerText = "Real-time Sync: " + new Date().toLocaleTimeString();
+                    document.getElementById('last-sync').innerText = "Last Sync: " + new Date().toLocaleTimeString();
                 }
-                
             } catch (error) {
-                console.log("Syncing...");
+                console.error("Sync Error:", error);
+                document.getElementById('last-sync').innerText = "Syncing... (Check Connection)";
             }
         }
 
-        // 4 seconds is the "Sweet Spot" for Google Apps Script to prevent overlaps
-        setInterval(updateData, 4000);
+        // 5 seconds is the safest timing for Google Apps Script stability
+        setInterval(updateData, 5000);
         updateData();
     </script>
 </body>
