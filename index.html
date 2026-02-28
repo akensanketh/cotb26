@@ -10,7 +10,7 @@
         .live-dot { height: 10px; width: 10px; background: #ff0000; border-radius: 50%; display: inline-block; animation: pulse 1s infinite; margin-right: 5px; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
         h1 { font-size: 1.4rem; margin: 5px 0; color: #002D62; }
-        .val { font-size: 1.8rem; font-weight: bold; color: #002D62; margin: 10px 0; min-height: 1.2em; transition: all 0.3s ease; }
+        .val { font-size: 1.8rem; font-weight: bold; color: #002D62; margin: 10px 0; min-height: 1.2em; }
         .label { font-size: 0.7rem; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-top: 15px; }
         hr { border: 0; border-top: 1px solid #eee; margin: 15px 0; }
         .sync-time { font-size: 10px; color: #bbb; margin-top: 15px; }
@@ -28,9 +28,9 @@
         <div id="status" class="val">Syncing...</div>
 
         <div class="label">Location</div>
-        <div id="location" class="val">Waiting for data</div>
+        <div id="location" class="val">Waiting...</div>
 
-        <div id="last-sync" class="sync-time">Initializing High-Speed Link...</div>
+        <div id="last-sync" class="sync-time">Connecting...</div>
     </div>
 
     <div class="credits">
@@ -43,27 +43,31 @@
 
         async function updateData() {
             try {
-                // Fetching directly from Apps Script (No Cache)
-                const response = await fetch(SCRIPT_URL);
-                if (!response.ok) throw new Error('Offline');
+                // 'cache: no-store' and a random 'v=' parameter kills the flickering/old data
+                const response = await fetch(`${SCRIPT_URL}?v=${Date.now()}`, {
+                    method: 'GET',
+                    cache: 'no-store',
+                    mode: 'cors'
+                });
+
+                if (!response.ok) return;
                 
                 const data = await response.json();
 
-                // Update UI only if data actually changed
-                document.getElementById('status').innerText = data.status;
-                document.getElementById('location').innerText = data.location;
-                document.getElementById('last-sync').innerText = "Real-time Sync: " + new Date().toLocaleTimeString();
+                // Only update if we actually have text to prevent blank flickers
+                if (data.status && data.location) {
+                    document.getElementById('status').innerText = data.status;
+                    document.getElementById('location').innerText = data.location;
+                    document.getElementById('last-sync').innerText = "Real-time Sync: " + new Date().toLocaleTimeString();
+                }
                 
             } catch (error) {
-                console.error('Connection error:', error);
-                document.getElementById('last-sync').innerText = "Reconnecting to Live Stream...";
+                console.log("Syncing...");
             }
         }
 
-        // 3-second heartbeat for instant updates
-        setInterval(updateData, 3000);
-        
-        // Initial load
+        // 4 seconds is the "Sweet Spot" for Google Apps Script to prevent overlaps
+        setInterval(updateData, 4000);
         updateData();
     </script>
 </body>
