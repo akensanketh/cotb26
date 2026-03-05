@@ -5,64 +5,92 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>COTB '26 LIVE</title>
     <style>
-        body { font-family: -apple-system, sans-serif; background: #002D62; color: white; text-align: center; margin: 0; padding: 20px; }
-        .card { background: white; color: #333; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 400px; margin: 0 auto; }
-        .live-dot { height: 10px; width: 10px; background: #ff0000; border-radius: 50%; display: inline-block; animation: pulse 1s infinite; margin-right: 5px; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
-        h1 { font-size: 1.4rem; margin: 5px 0; color: #002D62; }
-        .val { font-size: 1.8rem; font-weight: bold; color: #002D62; margin: 10px 0; min-height: 1.2em; }
-        .label { font-size: 0.7rem; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-top: 15px; }
-        hr { border: 0; border-top: 1px solid #eee; margin: 15px 0; }
-        .sync-time { font-size: 10px; color: #bbb; margin-top: 15px; }
-        .credits { margin-top: 20px; font-size: 11px; color: rgba(255,255,255,0.7); line-height: 1.5; }
+        :root { --primary: #002D62; --accent: #ff0000; --text: #333; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--primary); color: white; text-align: center; margin: 0; padding: 15px; overflow: hidden; }
+        
+        /* Main Container */
+        .card { background: white; color: var(--text); padding: 30px 20px; border-radius: 25px; box-shadow: 0 15px 40px rgba(0,0,0,0.4); max-width: 400px; margin: 0 auto; position: relative; }
+        
+        /* Live Indicator */
+        .live-tag { position: absolute; top: 15px; right: 20px; font-size: 10px; font-weight: bold; color: var(--accent); letter-spacing: 1px; }
+        .live-dot { height: 8px; width: 8px; background: var(--accent); border-radius: 50%; display: inline-block; animation: pulse 1.2s infinite; margin-right: 3px; }
+        
+        @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.2); } 100% { opacity: 1; transform: scale(1); } }
+        
+        h1 { font-size: 1.6rem; margin: 10px 0; color: var(--primary); letter-spacing: -1px; }
+        hr { border: 0; border-top: 1px solid #eee; margin: 20px 0; }
+        
+        /* Data Styling */
+        .label { font-size: 0.7rem; color: #999; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; }
+        .val { font-size: 2rem; font-weight: 800; color: var(--primary); margin: 8px 0 25px 0; line-height: 1.1; transition: opacity 0.3s; }
+        
+        #last-sync { font-size: 10px; color: #ccc; margin-top: 10px; font-family: monospace; }
+        
+        .footer { margin-top: 20px; font-size: 11px; opacity: 0.8; line-height: 1.6; }
+        .highlight { color: #fff; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.3); }
     </style>
 </head>
 <body>
 
     <div class="card">
-        <div style="margin-bottom: 10px;"><span class="live-dot"></span><span style="font-weight:bold; font-size: 13px; color: #ff0000;">LIVE UPDATES</span></div>
+        <div class="live-tag"><span class="live-dot"></span> LIVE</div>
+        <p style="font-size: 12px; margin:0; color:#666; font-weight:600;">OFFICIAL TRACKER</p>
         <h1>CLASH OF THE BLUES</h1>
+        
         <hr>
         
         <div class="label">Current Status</div>
-        <div id="status" class="val">Connecting...</div>
+        <div id="status" class="val">---</div>
 
         <div class="label">Location</div>
-        <div id="location" class="val">Loading...</div>
+        <div id="location" class="val">---</div>
 
-        <div id="last-sync" class="sync-time">Establishing Link...</div>
+        <div id="last-sync">Establishing Secure Connection...</div>
     </div>
 
-    <div class="credits">
-        📡 Data provided by NSIS Media Unit via GitHub Edge<br>
-        <strong>Created by Aken Sanketh</strong>
+    <div class="footer">
+        📡 Data via NSIS Media Unit GitHub Edge<br>
+        Engineered by <span class="highlight">Aken Sanketh</span>
     </div>
 
     <script>
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxGxEgHckLmJ5IQL2mzOHOQ0qMLzK2O4VOYq4wb1ZIeyrCK1-liG1Uu3h0pySMd-QPavQ/exec';
 
         async function updateData() {
-            // We add the time to the URL but remove the 'cache: no-store' headers 
-            // to allow Google to handle the redirect properly.
-            const finalUrl = SCRIPT_URL + "?v=" + new Date().getTime();
-
             try {
-                const response = await fetch(finalUrl);
+                // Unique timestamp prevents browser caching
+                const response = await fetch(`${SCRIPT_URL}?t=${new Date().getTime()}`);
+                if (!response.ok) throw new Error();
+                
                 const data = await response.json();
 
-                if (data.status || data.location) {
-                    document.getElementById('status').innerText = data.status;
-                    document.getElementById('location').innerText = data.location;
-                    document.getElementById('last-sync').innerText = "Last Sync: " + new Date().toLocaleTimeString();
+                if (data.status && data.location) {
+                    // Update only if text changed to reduce visual jumpiness
+                    if (document.getElementById('status').innerText !== data.status) {
+                        document.getElementById('status').style.opacity = 0;
+                        setTimeout(() => {
+                            document.getElementById('status').innerText = data.status;
+                            document.getElementById('status').style.opacity = 1;
+                        }, 300);
+                    }
+                    
+                    if (document.getElementById('location').innerText !== data.location) {
+                        document.getElementById('location').style.opacity = 0;
+                        setTimeout(() => {
+                            document.getElementById('location').innerText = data.location;
+                            document.getElementById('location').style.opacity = 1;
+                        }, 300);
+                    }
+
+                    document.getElementById('last-sync').innerText = "SYNC OK: " + new Date().toLocaleTimeString();
                 }
-            } catch (error) {
-                console.error("Sync Error:", error);
-                document.getElementById('last-sync').innerText = "Syncing... (Check Connection)";
+            } catch (err) {
+                document.getElementById('last-sync').innerText = "RECONNECTING...";
             }
         }
 
-        // 5 seconds is the safest timing for Google Apps Script stability
-        setInterval(updateData, 5000);
+        // Refresh every 4 seconds for optimal balance between speed and stability
+        setInterval(updateData, 4000);
         updateData();
     </script>
 </body>
